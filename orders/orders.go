@@ -4,6 +4,7 @@ package orders
 import (
 	"errors"
 	"fmt"
+	"math"
 
 	"example.com/shop/events"
 	"example.com/shop/pricing"
@@ -46,7 +47,7 @@ func (o *Service) Quote(items []Item) (float64, error) {
 	for _, it := range items {
 		total += pricing.CalcPrice(it.UnitPrice, it.Qty)
 	}
-	return total, nil
+	return math.Floor(total*100) / 100, nil
 }
 
 // Place reserves stock for items, publishes OrderPlaced, and returns the total.
