@@ -66,6 +66,21 @@ func TestQuoteAndPlacePreserveLineOrder(t *testing.T) {
 	}
 }
 
+func TestPlaceSumsRoundedLineQuotes(t *testing.T) {
+	st := stock.NewStock()
+	st.Add("apple", 4)
+	svc := New(st, &events.Bus{})
+
+	got, err := svc.Place("o1", []Item{
+		{Name: "apple", UnitPrice: 0.01, Qty: 1},
+		{Name: "apple", UnitPrice: 0.10, Qty: 3},
+	})
+	const want = 0.31000000000000005
+	if err != nil || got != want {
+		t.Fatalf("Place = (%v, %v), want (%v, nil)", got, err, want)
+	}
+}
+
 func TestPlaceValidatesBeforeReserving(t *testing.T) {
 	tests := []struct {
 		name string

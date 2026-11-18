@@ -63,17 +63,19 @@ func (o *Service) Place(id string, items []Item) (float64, error) {
 		}
 	}
 
-	lines := make([]pricing.Line, len(items))
+	var total float64
+	var line [1]pricing.Line
 	reserved := map[string]int{}
-	for i, it := range items {
+	for _, it := range items {
 		if err := o.stock.Remove(it.Name, it.Qty); err != nil {
 			return 0, fmt.Errorf("reserve %s: %w", it.Name, err)
 		}
 		reserved[it.Name] += it.Qty
-		lines[i] = pricing.Line{UnitPrice: it.UnitPrice, Qty: it.Qty}
+		line[0] = pricing.Line{UnitPrice: it.UnitPrice, Qty: it.Qty}
+		// Quote rounds each line before it is added to the running total.
+		total += pricing.Quote(line[:], 0)
 	}
 
-	total := pricing.Quote(lines, 0)
 	o.bus.Publish(events.OrderPlaced{OrderID: id, Items: reserved})
 	return total, nil
 }

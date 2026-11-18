@@ -20,6 +20,8 @@ func TestPriceZeroSign(t *testing.T) {
 	}{
 		{"negative unit", "unit=-0&qty=1", `{"price":-0}` + "\n"},
 		{"negative quantity", "unit=0&qty=-1", `{"price":-0}` + "\n"},
+		{"zero quantity with negative unit", "unit=-5&qty=0", `{"price":-0}` + "\n"},
+		{"zero quantity with positive unit", "unit=5&qty=0", `{"price":0}` + "\n"},
 		{"two negatives", "unit=-0&qty=-1", `{"price":0}` + "\n"},
 		{"two positives", "unit=0&qty=1", `{"price":0}` + "\n"},
 	}
