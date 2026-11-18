@@ -4,6 +4,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"math/big"
 	"net/http"
 	"strconv"
 
@@ -68,6 +69,6 @@ func main() {
 
 func stockTotalHandler(st *stock.Stock) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]int{"total": st.Total()})
+		json.NewEncoder(w).Encode(map[string]*big.Int{"total": st.Total()})
 	})
 }
