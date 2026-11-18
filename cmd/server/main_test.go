@@ -26,6 +26,9 @@ func TestStockTotal(t *testing.T) {
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("status = %d, want 200", resp.StatusCode)
 		}
+		if got := resp.Header.Get("Content-Type"); got != "application/json" {
+			t.Errorf("Content-Type = %q, want application/json", got)
+		}
 		var got map[string]int
 		if err := json.NewDecoder(resp.Body).Decode(&got); err != nil {
 			t.Fatal(err)

@@ -69,6 +69,7 @@ func main() {
 
 func stockTotalHandler(st *stock.Stock) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]*big.Int{"total": st.Total()})
 	})
 }
