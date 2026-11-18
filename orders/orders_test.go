@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"example.com/shop/events"
-	"example.com/shop/pricing"
 	"example.com/shop/stock"
 )
 
@@ -25,6 +24,36 @@ func TestOrderTotal(t *testing.T) {
 	}
 }
 
+func TestMultiLineOrderTotal(t *testing.T) {
+	st := stock.NewStock()
+	st.Add("apple", 3)
+	st.Add("pear", 1)
+	svc := New(st, &events.Bus{})
+	items := []Item{
+		{Name: "apple", UnitPrice: 0.5, Qty: 2},
+		{Name: "apple", UnitPrice: 1, Qty: 1},
+		{Name: "pear", UnitPrice: 1e16, Qty: 1},
+	}
+	// Adding the two small lines first preserves their contribution.
+	const want = 10000000000000002
+
+	got, err := svc.Quote(items)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Fatalf("Quote total = %v, want %v", got, float64(want))
+	}
+
+	got, err = svc.Place("o1", items)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Fatalf("Place total = %v, want %v", got, float64(want))
+	}
+}
+
 func TestPlaceReservesStock(t *testing.T) {
 	st := stock.NewStock()
 	st.Add("apple", 10)
@@ -34,7 +63,7 @@ func TestPlaceReservesStock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := pricing.CalcPrice(2.5, 2); got != want {
+	if want := 5.0; got != want {
 		t.Fatalf("total = %v, want %v", got, want)
 	}
 	if left := st.Count("apple"); left != 8 {
