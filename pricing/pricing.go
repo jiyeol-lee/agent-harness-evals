@@ -15,10 +15,3 @@ func Quote(lines []Line, discountPct float64) float64 {
 	}
 	return total * (1 - discountPct/100)
 }
-
-// CalcPrice returns the price of qty units at unitPrice.
-//
-// Deprecated: use Quote, which prices a whole order and supports discounts.
-func CalcPrice(unitPrice float64, qty int) float64 {
-	return unitPrice * float64(qty)
-}
