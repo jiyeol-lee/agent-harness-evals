@@ -69,3 +69,12 @@ func (s *Stock) Count(name string) int {
 	}
 	return 0
 }
+
+// Total returns the sum of the current quantities of all items.
+func (s *Stock) Total() int {
+	total := 0
+	for _, e := range s.entries {
+		total += e.qty
+	}
+	return total
+}
