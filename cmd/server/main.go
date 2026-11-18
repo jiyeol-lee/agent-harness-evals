@@ -44,7 +44,17 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]float64{"total": total})
 	})
 
-	http.HandleFunc("GET /price", func(w http.ResponseWriter, r *http.Request) {
+	registerPrice(http.DefaultServeMux)
+
+	http.HandleFunc("GET /stock/{name}", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]int{"count": st.Count(r.PathValue("name"))})
+	})
+
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func registerPrice(mux *http.ServeMux) {
+	mux.HandleFunc("GET /price", func(w http.ResponseWriter, r *http.Request) {
 		unit, err := strconv.ParseFloat(r.URL.Query().Get("unit"), 64)
 		if err != nil {
 			http.Error(w, "bad unit", http.StatusBadRequest)
@@ -62,10 +72,4 @@ func main() {
 		}
 		json.NewEncoder(w).Encode(map[string]float64{"price": price})
 	})
-
-	http.HandleFunc("GET /stock/{name}", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]int{"count": st.Count(r.PathValue("name"))})
-	})
-
-	log.Fatal(http.ListenAndServe(":8080", nil))
 }
