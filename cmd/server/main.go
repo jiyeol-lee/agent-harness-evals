@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"example.com/shop/events"
 	"example.com/shop/orders"
@@ -14,6 +15,10 @@ import (
 )
 
 func main() {
+	log.Fatal(http.ListenAndServe(":8080", newHandler()))
+}
+
+func newHandler() http.Handler {
 	st := stock.NewStock()
 	st.Add("apple", 100)
 	st.Add("pear", 50)
@@ -25,8 +30,10 @@ func main() {
 		}
 	})
 	svc := orders.New(st, bus)
+	var stockMu sync.RWMutex
 
-	http.HandleFunc("POST /orders", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /orders", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			ID    string        `json:"id"`
 			Items []orders.Item `json:"items"`
@@ -35,7 +42,9 @@ func main() {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		stockMu.Lock()
 		total, err := svc.Place(req.ID, req.Items)
+		stockMu.Unlock()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusConflict)
 			return
@@ -43,7 +52,7 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]float64{"total": total})
 	})
 
-	http.HandleFunc("GET /price", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /price", func(w http.ResponseWriter, r *http.Request) {
 		unit, err := strconv.ParseFloat(r.URL.Query().Get("unit"), 64)
 		if err != nil {
 			http.Error(w, "bad unit", http.StatusBadRequest)
@@ -57,9 +66,19 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]float64{"price": pricing.CalcPrice(unit, qty)})
 	})
 
-	http.HandleFunc("GET /stock/{name}", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]int{"count": st.Count(r.PathValue("name"))})
+	mux.HandleFunc("GET /stock/{name}", func(w http.ResponseWriter, r *http.Request) {
+		stockMu.RLock()
+		count := st.Count(r.PathValue("name"))
+		stockMu.RUnlock()
+		json.NewEncoder(w).Encode(map[string]int{"count": count})
 	})
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	mux.HandleFunc("GET /stock-total", func(w http.ResponseWriter, r *http.Request) {
+		stockMu.RLock()
+		total := st.Total()
+		stockMu.RUnlock()
+		json.NewEncoder(w).Encode(map[string]int{"total": total})
+	})
+
+	return mux
 }
