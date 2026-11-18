@@ -23,6 +23,7 @@ type removal struct {
 }
 
 // Stock holds the quantitiy of each item.
+// A Stock must not be copied after first use.
 type Stock struct {
 	mu      sync.RWMutex
 	entries []entry
