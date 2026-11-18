@@ -57,9 +57,17 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]float64{"price": pricing.CalcPrice(unit, qty)})
 	})
 
-	http.HandleFunc("GET /stock/{name}", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]int{"count": st.Count(r.PathValue("name"))})
-	})
+	registerStockRoutes(http.DefaultServeMux, st)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func registerStockRoutes(mux *http.ServeMux, st *stock.Stock) {
+	mux.HandleFunc("GET /stock", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(st.List())
+	})
+	mux.HandleFunc("GET /stock/{name}", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]int{"count": st.Count(r.PathValue("name"))})
+	})
 }
