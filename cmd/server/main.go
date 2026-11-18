@@ -4,6 +4,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"math/big"
 	"net/http"
 	"strconv"
 
@@ -21,7 +22,10 @@ func newHandler() http.Handler {
 	st := stock.NewStock()
 	st.Add("apple", 100)
 	st.Add("pear", 50)
+	return routes(st)
+}
 
+func routes(st *stock.Stock) http.Handler {
 	bus := &events.Bus{}
 	bus.Subscribe(func(e events.OrderPlaced) {
 		for name, qty := range e.Items {
@@ -67,7 +71,7 @@ func newHandler() http.Handler {
 	})
 
 	mux.HandleFunc("GET /stock-total", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]int{"total": st.Total()})
+		json.NewEncoder(w).Encode(map[string]*big.Int{"total": st.Total()})
 	})
 
 	return mux

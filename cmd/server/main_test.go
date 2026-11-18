@@ -3,10 +3,14 @@ package main
 import (
 	"encoding/json"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
+
+	"example.com/shop/stock"
 )
 
 func TestStockTotal(t *testing.T) {
@@ -63,5 +67,30 @@ func TestStockTotal(t *testing.T) {
 	}
 	if got, want := get("/stock-total", "total"), apple+pear; got != want {
 		t.Fatalf("updated stock total = %v, want %v", got, want)
+	}
+}
+
+func TestStockTotalBeyondMaxInt(t *testing.T) {
+	st := stock.NewStock()
+	st.Add("apple", math.MaxInt)
+	st.Add("pear", 2)
+	server := httptest.NewServer(routes(st))
+	defer server.Close()
+
+	resp, err := server.Client().Get(server.URL + "/stock-total")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("GET /stock-total: status = %d, want 200", resp.StatusCode)
+	}
+	var body map[string]json.RawMessage
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatalf("GET /stock-total: decode JSON: %v", err)
+	}
+	want := strconv.FormatUint(uint64(math.MaxInt)+2, 10)
+	if got := string(body["total"]); got != want || len(body) != 1 {
+		t.Fatalf("stock total = %s, want unquoted %s", got, want)
 	}
 }
