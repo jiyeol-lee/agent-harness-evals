@@ -19,3 +19,21 @@ func TestRemoveUnknown(t *testing.T) {
 		t.Fatalf("Remove(pear) = %v, want ErrUnknownItem", err)
 	}
 }
+
+func TestTotalEmpty(t *testing.T) {
+	s := NewStock()
+
+	if got := s.Total(); got != 0 {
+		t.Fatalf("Total() = %d, want 0", got)
+	}
+}
+
+func TestTotalMultipleItems(t *testing.T) {
+	s := NewStock()
+	s.Add("apple", 3)
+	s.Add("pear", 2)
+
+	if got := s.Total(); got != 5 {
+		t.Fatalf("Total() = %d, want 5", got)
+	}
+}
