@@ -3,6 +3,7 @@ package stock
 
 import (
 	"errors"
+	"math/big"
 	"time"
 )
 
@@ -70,10 +71,11 @@ func (s *Stock) Count(name string) int {
 	return 0
 }
 
-func (s *Stock) Total() int {
-	total := 0
+func (s *Stock) Total() *big.Int {
+	total := new(big.Int)
+	var qty big.Int
 	for _, e := range s.entries {
-		total += e.qty
+		total.Add(total, qty.SetInt64(int64(e.qty)))
 	}
 	return total
 }
