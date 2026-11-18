@@ -1,0 +1,1 @@
+Packing says we sold two apples but four disappeared. It seems to happen when the order also has a pear. Can you find out why? If you can confirm that one order takes stock twice, go ahead and fix that locally. Otherwise leave the code alone and tell me what you found.

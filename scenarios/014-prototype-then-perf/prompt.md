@@ -1,0 +1,1 @@
+Stock.Count is slow on a catalog the size of the one in BenchmarkCount. I'm torn between keeping a sorted index for binary search and using a map keyed by item name. Try both as throwaway experiments with the same catalog and show me the numbers and tradeoffs. Then implement the winner in the shop, keeping the stock API and its behavior intact. Keep this local.

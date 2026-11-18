@@ -1,0 +1,1 @@
+Can you do a gardening pass over orders/ and pricing/, including their tests? I want to know which patterns we're likely to keep copying. Give me a ranked, numbered list of groups, where you saw each one, and how you'd keep it from coming back. Don't change anything until I pick a group. This is local work only.

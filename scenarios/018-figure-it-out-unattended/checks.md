@@ -1,0 +1,8 @@
+# Run an unattended, auditable performance task
+
+Tests that "I'm stepping away" sends the work to `figure-it-out`, that the agent keeps going without asking, and that it leaves a trail the user can replay.
+
+- **Route.** Drill hands the work to `figure-it-out`. Before optimizing, the transcript records a workflow with a pass/fail target, correctness checks, and a measurement plan. Perf issue or Hillclimb steps supply the baseline, evidence about the bottleneck, measured attempts, and keep or revert decisions. Loading skills without doing that work is not enough. The agent does not stop to ask about reversible choices.
+- **Like with like.** Replay the handed-over command on the baseline and final code. It measures the real `Count` for `item-99999` in the seeded 100,000-item catalog, excludes setup, and provably performs the lookup. `BenchmarkCount` discards its result, so if the agent corrects that, the correction must apply to both sides before claiming a gain. Use repeated comparable runs and the same statistic.
+- **Decision trail.** A readable decision log, linked from the handoff, records hypotheses, measurements, correctness results, and what was kept or reverted, written as the work went. Local commits and tool output back the entries. Don't require invented failed attempts, a fixed number of attempts, or more optimizing after a demonstrated win.
+- **Handoff.** The final verified time is strictly below 1,000 ns/op, with correct counts after adds and removals and `0` for a missing item. If blocked, the agent reports the measured miss or an inconclusive result instead of a pass. No weakened workload, special case for the benchmark key, unrelated repair, push, or PR.

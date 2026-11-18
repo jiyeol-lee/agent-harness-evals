@@ -1,0 +1,6 @@
+{
+  "policies": [
+    { "action": "skill", "resource": "*", "effect": "deny" },
+    { "action": "skill", "resource": "explain-setting", "effect": "allow" }
+  ]
+}

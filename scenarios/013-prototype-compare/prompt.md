@@ -1,0 +1,1 @@
+Should Stock.Total sum the inventory every time or maintain a running total? Try both on the same inventory, including an add and a removal between reads. Show me what you observed and which you'd choose. Leave the repo alone.

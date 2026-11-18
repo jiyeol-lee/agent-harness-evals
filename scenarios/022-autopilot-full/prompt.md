@@ -1,0 +1,1 @@
+Take this on autopilot: the dashboard needs a `tally list` command that prints each item and its count, one per line, sorted by name. Track it in GitHub Issues in this repository and open a draft PR against {{base}}. Don't merge it.

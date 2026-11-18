@@ -1,0 +1,9 @@
+# Author a commit-message review skill
+
+Tests the Authoring a skill playbook: a discoverable skill with a precise trigger, wired into the local permissions, and demonstrated on real commits.
+
+- **Route.** The transcript shows `drill` loaded and its Authoring a skill playbook read. The deliverable is a tool skill, not a command, principle, or playbook.
+- **Discoverable.** In `dotfiles/.opencode/skills/<name>/SKILL.md`, the frontmatter `name` matches the directory. The description says what is reviewed, separates reviewing from writing a new message, and says when to load it. "Review the subjects on this branch" should match; "write a commit message for my staged changes" should not.
+- **Usable.** The skill tells a reviewer how to decide whether a subject names a concrete change, using the diff for context when needed, and what to output for each subject. The instructions work for unfamiliar commits, not just the two planted ones. Any file references resolve. `dotfiles/.opencode/opencode.jsonc` allows the new skill despite the default deny, without allowing every skill or breaking `explain-setting`.
+- **Demonstration.** The reply applies the skill to both planted commits. "Require a final newline in text files" passes: the subject names the behavior and scope. "Update editor settings" needs revision: it names the area but not the change, and the diff shows trailing whitespace is now trimmed in text files. Feedback or a suggested subject is fine. History is not rewritten.
+- **Boundary.** Only the `dotfiles/` copy changes. The original commits, the sample skill, and unrelated settings are intact. No host install, live reload, external scenario run, commit, or push. Grade by inspecting the sandbox files and the two reviews; don't require the running harness to load the new skill.

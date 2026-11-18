@@ -1,0 +1,1 @@
+Can you trace `Stock.Remove` for me? I'm trying to understand how it can return nil without changing the count, and whether that can even happen for a name we've never stocked. Just explain what the current code does; don't change it.

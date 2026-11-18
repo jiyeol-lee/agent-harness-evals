@@ -1,0 +1,1 @@
+Add a `tally list` command so the dashboard can read every item and its current count in one call, printed as one JSON object keyed by item name. Show me its output on a fresh stock file, then pause before wrapping up.

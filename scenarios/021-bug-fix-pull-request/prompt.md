@@ -1,0 +1,1 @@
+From a fresh stock file I ordered 101 apples, the order succeeded, and the count showed -1. We should reject that order without changing stock, but selling the last apple is fine. Please fix it and open a draft PR against {{base}} on GitHub. I'll review and merge it myself.

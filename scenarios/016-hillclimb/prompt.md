@@ -1,0 +1,1 @@
+Our latency budget for placing an order is p95 under 5 µs per call, with 100,000 distinct items in stock and the order service wired the way `cmd/shop` wires it. Measure successful single-line orders spread across that catalog, then iterate on the slow path until we're under budget or there's a good reason to stop. Show me what you kept and what you ruled out.

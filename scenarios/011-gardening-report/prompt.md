@@ -1,0 +1,1 @@
+Take a look through orders, pricing, stock, and the CLI wiring for code smells we'd regret copying. Give me a ranked shortlist of cleanups and how we'd keep each problem from coming back. I'll pick what to tackle; don't edit anything yet.

@@ -1,0 +1,1 @@
+Migrate the shop from floating-point money to integer cents across pricing, orders, and the CLI. Callers can move to explicit cent amounts; make the new contract clear, including what happens when a discount lands between cents. I'll review tomorrow. Leave me the decisions and evidence I'll need to sign off.

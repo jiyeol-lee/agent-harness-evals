@@ -1,0 +1,1 @@
+Stock.Count is taking too long on a catalog of a million distinct items, especially when the match is near the end. Find where the lookup time goes, fix it, and show the before and after on that workload.

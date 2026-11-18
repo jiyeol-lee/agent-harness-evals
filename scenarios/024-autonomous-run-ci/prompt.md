@@ -1,0 +1,1 @@
+Watch CI on the open PR for this branch. Diagnose whatever fails, push the smallest verified fix to this PR, and keep watching until its checks are green. Don't change the workflow, skip tests, or merge.
