@@ -30,27 +30,38 @@ func New(s *stock.Stock, b *events.Bus) *Service {
 
 // Quote returns the total price of items without reserving stock.
 func (o *Service) Quote(items []Item) (float64, error) {
-	if len(items) == 0 {
-		return 0, errors.New("order has no items")
+	if err := validateItems(items); err != nil {
+		return 0, err
 	}
-	lines := make([]pricing.Line, len(items))
-	for i, it := range items {
+	return quoteItems(items), nil
+}
+
+func validateItems(items []Item) error {
+	if len(items) == 0 {
+		return errors.New("order has no items")
+	}
+	for _, it := range items {
 		if it.Qty <= 0 {
-			return 0, fmt.Errorf("item %s: quantity must be positive", it.Name)
+			return fmt.Errorf("item %s: quantity must be positive", it.Name)
 		}
 		if it.UnitPrice < 0 {
-			return 0, fmt.Errorf("item %s: price must not be negative", it.Name)
+			return fmt.Errorf("item %s: price must not be negative", it.Name)
 		}
+	}
+	return nil
+}
+
+func quoteItems(items []Item) float64 {
+	lines := make([]pricing.Line, len(items))
+	for i, it := range items {
 		lines[i] = pricing.Line{UnitPrice: it.UnitPrice, Qty: it.Qty}
 	}
-
-	return pricing.Quote(lines, 0), nil
+	return pricing.Quote(lines, 0)
 }
 
 // Place reserves stock for items, publishes OrderPlaced, and returns the total.
 func (o *Service) Place(id string, items []Item) (float64, error) {
-	total, err := o.Quote(items)
-	if err != nil {
+	if err := validateItems(items); err != nil {
 		return 0, err
 	}
 
@@ -62,6 +73,7 @@ func (o *Service) Place(id string, items []Item) (float64, error) {
 		reserved[it.Name] += it.Qty
 	}
 
+	total := quoteItems(items)
 	o.bus.Publish(events.OrderPlaced{OrderID: id, Items: reserved})
 	return total, nil
 }
