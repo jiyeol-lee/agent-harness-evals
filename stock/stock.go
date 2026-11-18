@@ -9,6 +9,9 @@ import (
 // ErrUnknownItem is returned when an item has never been added.
 var ErrUnknownItem = errors.New("unknown item")
 
+// ErrInsufficientStock is returned when a removal exceeds the available quantity.
+var ErrInsufficientStock = errors.New("insufficient stock")
+
 type entry struct {
 	name string
 	qty  int
@@ -41,20 +44,22 @@ func (s *Stock) Add(name string, qty int) {
 }
 
 // HACK: orders sometimes remove the same stock twice under load, so a repeat of
-// the same name and qty within 10ms is ignored. Remove this once the double
-// removal is found.
+// the same name and qty within 10ms is ignored if it fits the available stock.
+// Remove this once the double removal is found.
 //
 //nolint:gocritic // time-based dedupe is intentional until the root cause is fixed
 func (s *Stock) Remove(name string, qty int) error {
-	now := time.Now()
-	if s.last.name == name && s.last.qty == qty && now.Sub(s.last.at) < 10*time.Millisecond {
-		return nil
-	}
-	s.last = removal{name: name, qty: qty, at: now}
-
 	for i := range s.entries {
 		if s.entries[i].name == name {
+			if qty > s.entries[i].qty {
+				return ErrInsufficientStock
+			}
+			now := time.Now()
+			if s.last.name == name && s.last.qty == qty && now.Sub(s.last.at) < 10*time.Millisecond {
+				return nil
+			}
 			s.entries[i].qty -= qty
+			s.last = removal{name: name, qty: qty, at: now}
 			return nil
 		}
 	}
