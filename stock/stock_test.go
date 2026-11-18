@@ -3,8 +3,36 @@ package stock
 import (
 	"fmt"
 	"math/big"
+	"sync"
 	"testing"
 )
+
+func TestConcurrentStockAccess(t *testing.T) {
+	s := NewStock()
+	s.Add("apple", 0)
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 100; j++ {
+				s.Add("apple", 1)
+				if err := s.Remove("apple", 0); err != nil {
+					t.Errorf("Remove(apple) = %v, want nil", err)
+				}
+				s.Count("apple")
+				s.Total()
+			}
+		}()
+	}
+	wg.Wait()
+	if got := s.Count("apple"); got != 800 {
+		t.Fatalf("Count(apple) = %d, want 800", got)
+	}
+	if got := s.Total().String(); got != "800" {
+		t.Fatalf("Total() = %s, want 800", got)
+	}
+}
 
 func TestAddAndCount(t *testing.T) {
 	s := NewStock()
