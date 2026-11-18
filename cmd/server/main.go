@@ -4,6 +4,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -43,23 +44,30 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]float64{"total": total})
 	})
 
-	http.HandleFunc("GET /price", func(w http.ResponseWriter, r *http.Request) {
-		unit, err := strconv.ParseFloat(r.URL.Query().Get("unit"), 64)
-		if err != nil {
-			http.Error(w, "bad unit", http.StatusBadRequest)
-			return
-		}
-		qty, err := strconv.Atoi(r.URL.Query().Get("qty"))
-		if err != nil {
-			http.Error(w, "bad qty", http.StatusBadRequest)
-			return
-		}
-		json.NewEncoder(w).Encode(map[string]float64{"price": pricing.CalcPrice(unit, qty)})
-	})
+	http.HandleFunc("GET /price", handlePrice)
 
 	http.HandleFunc("GET /stock/{name}", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]int{"count": st.Count(r.PathValue("name"))})
 	})
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func handlePrice(w http.ResponseWriter, r *http.Request) {
+	unit, err := strconv.ParseFloat(r.URL.Query().Get("unit"), 64)
+	if err != nil {
+		http.Error(w, "bad unit", http.StatusBadRequest)
+		return
+	}
+	qty, err := strconv.Atoi(r.URL.Query().Get("qty"))
+	if err != nil {
+		http.Error(w, "bad qty", http.StatusBadRequest)
+		return
+	}
+	price := pricing.Quote([]pricing.Line{{UnitPrice: unit, Qty: qty}}, 0)
+	// Quote starts its sum at +0, but the endpoint preserves a negative zero product.
+	if price == 0 && math.Signbit(unit) != (qty < 0) {
+		price = math.Copysign(0, -1)
+	}
+	json.NewEncoder(w).Encode(map[string]float64{"price": price})
 }
