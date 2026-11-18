@@ -50,3 +50,30 @@ func TestTotalAfterAddsAndRemoval(t *testing.T) {
 		t.Fatalf("Total() after removal = %d, want -1", got)
 	}
 }
+
+func TestTotalConcurrentWithAddAndRemove(t *testing.T) {
+	s := NewStock()
+	s.Add("apple", 1)
+	const iterations = 1000
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i := 0; i < iterations; i++ {
+			s.Total()
+		}
+	}()
+
+	for qty := 1; qty <= iterations; qty++ {
+		s.Add("apple", qty)
+		if err := s.Remove("apple", qty); err != nil {
+			t.Errorf("Remove(apple, %d): %v", qty, err)
+			break
+		}
+	}
+	<-done
+
+	if got := s.Total(); got != 1 {
+		t.Fatalf("Total() after balanced adds and removals = %d, want 1", got)
+	}
+}
