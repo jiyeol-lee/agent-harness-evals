@@ -52,6 +52,7 @@ func (o *Service) Place(id string, items []Item) (float64, error) {
 	if len(items) == 0 {
 		return 0, errors.New("order has no items")
 	}
+	lines := make([]pricing.Line, 0, len(items))
 	for _, it := range items {
 		if it.Qty <= 0 {
 			return 0, fmt.Errorf("item %s: quantity must be positive", it.Name)
@@ -59,19 +60,18 @@ func (o *Service) Place(id string, items []Item) (float64, error) {
 		if it.UnitPrice < 0 {
 			return 0, fmt.Errorf("item %s: price must not be negative", it.Name)
 		}
+		lines = append(lines, pricing.Line{UnitPrice: it.UnitPrice, Qty: it.Qty})
 	}
 
-	lines := make([]pricing.Line, 0, len(items))
+	total := pricing.Quote(lines, 0)
 	reserved := map[string]int{}
 	for _, it := range items {
 		if err := o.stock.Remove(it.Name, it.Qty); err != nil {
 			return 0, fmt.Errorf("reserve %s: %w", it.Name, err)
 		}
 		reserved[it.Name] += it.Qty
-		lines = append(lines, pricing.Line{UnitPrice: it.UnitPrice, Qty: it.Qty})
 	}
 
-	total := pricing.Quote(lines, 0)
 	o.bus.Publish(events.OrderPlaced{OrderID: id, Items: reserved})
 	return total, nil
 }
