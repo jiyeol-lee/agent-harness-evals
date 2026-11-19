@@ -2,12 +2,19 @@
 package stock
 
 import (
+	"cmp"
 	"errors"
+	"slices"
 	"time"
 )
 
 // ErrUnknownItem is returned when an item has never been added.
 var ErrUnknownItem = errors.New("unknown item")
+
+type ItemCount struct {
+	Name  string `json:"name"`
+	Count int    `json:"count"`
+}
 
 type entry struct {
 	name string
@@ -68,4 +75,16 @@ func (s *Stock) Count(name string) int {
 		}
 	}
 	return 0
+}
+
+// List returns a non-nil snapshot of item counts sorted by name.
+func (s *Stock) List() []ItemCount {
+	items := make([]ItemCount, 0, len(s.entries))
+	for _, e := range s.entries {
+		items = append(items, ItemCount{Name: e.name, Count: e.qty})
+	}
+	slices.SortFunc(items, func(a, b ItemCount) int {
+		return cmp.Compare(a.Name, b.Name)
+	})
+	return items
 }
