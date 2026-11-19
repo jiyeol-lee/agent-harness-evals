@@ -61,5 +61,13 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]int{"count": st.Count(r.PathValue("name"))})
 	})
 
+	registerStockTotal(http.DefaultServeMux, st)
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func registerStockTotal(mux *http.ServeMux, st *stock.Stock) {
+	mux.HandleFunc("GET /stock-total", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]int{"total": st.Total()})
+	})
 }
