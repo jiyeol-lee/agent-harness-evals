@@ -44,7 +44,7 @@ func (o *Service) Quote(items []Item) (float64, error) {
 
 	var total float64
 	for _, it := range items {
-		total += pricing.CalcPrice(it.UnitPrice, it.Qty)
+		total += pricing.Quote([]pricing.Line{{UnitPrice: it.UnitPrice, Qty: it.Qty}}, 0)
 	}
 	return total, nil
 }
@@ -70,7 +70,7 @@ func (o *Service) Place(id string, items []Item) (float64, error) {
 			return 0, fmt.Errorf("reserve %s: %w", it.Name, err)
 		}
 		reserved[it.Name] += it.Qty
-		total += pricing.CalcPrice(it.UnitPrice, it.Qty)
+		total += pricing.Quote([]pricing.Line{{UnitPrice: it.UnitPrice, Qty: it.Qty}}, 0)
 	}
 
 	o.bus.Publish(events.OrderPlaced{OrderID: id, Items: reserved})

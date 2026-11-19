@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"example.com/shop/events"
-	"example.com/shop/pricing"
 	"example.com/shop/stock"
 )
 
@@ -34,7 +33,7 @@ func TestPlaceReservesStock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := pricing.CalcPrice(2.5, 2); got != want {
+	if want := 5.0; got != want {
 		t.Fatalf("total = %v, want %v", got, want)
 	}
 	if left := st.Count("apple"); left != 8 {
