@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"sync"
 	"testing"
 
 	"example.com/shop/stock"
@@ -63,5 +64,29 @@ func TestStockList(t *testing.T) {
 				t.Errorf("GET /stock body = %s, want %v", res.Body.String(), tc.want)
 			}
 		})
+	}
+}
+
+func TestStockListDuringUpdates(t *testing.T) {
+	st := stock.NewStock()
+	st.Add("apple", 100)
+	mux := http.NewServeMux()
+	registerStockRoutes(mux, st)
+
+	var updates sync.WaitGroup
+	updates.Go(func() {
+		for range 100 {
+			st.Add("apple", 1)
+			_ = st.Remove("apple", 2)
+		}
+	})
+	defer updates.Wait()
+
+	for range 100 {
+		res := httptest.NewRecorder()
+		mux.ServeHTTP(res, httptest.NewRequest(http.MethodGet, "/stock", nil))
+		if res.Code != http.StatusOK {
+			t.Fatalf("GET /stock status = %d, want %d", res.Code, http.StatusOK)
+		}
 	}
 }
