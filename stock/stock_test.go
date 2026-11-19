@@ -1,6 +1,9 @@
 package stock
 
-import "testing"
+import (
+	"sync"
+	"testing"
+)
 
 func TestAddAndCount(t *testing.T) {
 	s := NewStock()
@@ -38,5 +41,30 @@ func TestTotal(t *testing.T) {
 	}
 	if got := s.Total(); got != 4 {
 		t.Fatalf("Total() after updating both items = %d, want 4", got)
+	}
+}
+
+func TestTotalDuringUpdates(t *testing.T) {
+	s := NewStock()
+	s.Add("pear", 1)
+
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		for range 1000 {
+			s.Add("apple", 1)
+		}
+		if err := s.Remove("pear", 1); err != nil {
+			t.Error(err)
+		}
+	})
+	wg.Go(func() {
+		for range 1000 {
+			s.Total()
+		}
+	})
+	wg.Wait()
+
+	if got := s.Total(); got != 1000 {
+		t.Fatalf("Total() after updates = %d, want 1000", got)
 	}
 }
