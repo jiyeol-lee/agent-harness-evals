@@ -42,7 +42,11 @@ func (o *Service) Quote(items []Item) (float64, error) {
 		}
 	}
 
-	return quoteItems(items), nil
+	var total float64
+	for _, it := range items {
+		total += pricing.Quote([]pricing.Line{{UnitPrice: it.UnitPrice, Qty: it.Qty}}, 0)
+	}
+	return total, nil
 }
 
 // Place reserves stock for items, publishes OrderPlaced, and returns the total.
@@ -59,23 +63,16 @@ func (o *Service) Place(id string, items []Item) (float64, error) {
 		}
 	}
 
+	var total float64
 	reserved := map[string]int{}
 	for _, it := range items {
 		if err := o.stock.Remove(it.Name, it.Qty); err != nil {
 			return 0, fmt.Errorf("reserve %s: %w", it.Name, err)
 		}
 		reserved[it.Name] += it.Qty
+		total += pricing.Quote([]pricing.Line{{UnitPrice: it.UnitPrice, Qty: it.Qty}}, 0)
 	}
 
-	total := quoteItems(items)
 	o.bus.Publish(events.OrderPlaced{OrderID: id, Items: reserved})
 	return total, nil
-}
-
-func quoteItems(items []Item) float64 {
-	lines := make([]pricing.Line, len(items))
-	for i, it := range items {
-		lines[i] = pricing.Line{UnitPrice: it.UnitPrice, Qty: it.Qty}
-	}
-	return pricing.Quote(lines, 0)
 }
