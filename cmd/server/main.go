@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"example.com/shop/events"
 	"example.com/shop/orders"
@@ -18,6 +19,10 @@ func main() {
 	st.Add("apple", 100)
 	st.Add("pear", 50)
 
+	log.Fatal(http.ListenAndServe(":8080", newHandler(st)))
+}
+
+func newHandler(st *stock.Stock) http.Handler {
 	bus := &events.Bus{}
 	bus.Subscribe(func(e events.OrderPlaced) {
 		for name, qty := range e.Items {
@@ -25,8 +30,10 @@ func main() {
 		}
 	})
 	svc := orders.New(st, bus)
+	mux := http.NewServeMux()
+	var stockMu sync.Mutex
 
-	http.HandleFunc("POST /orders", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /orders", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			ID    string        `json:"id"`
 			Items []orders.Item `json:"items"`
@@ -35,7 +42,12 @@ func main() {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		total, err := svc.Place(req.ID, req.Items)
+		total, err := func() (float64, error) {
+			// Place also calls the stock-updating subscriber synchronously.
+			stockMu.Lock()
+			defer stockMu.Unlock()
+			return svc.Place(req.ID, req.Items)
+		}()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusConflict)
 			return
@@ -43,7 +55,7 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]float64{"total": total})
 	})
 
-	http.HandleFunc("GET /price", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /price", func(w http.ResponseWriter, r *http.Request) {
 		unit, err := strconv.ParseFloat(r.URL.Query().Get("unit"), 64)
 		if err != nil {
 			http.Error(w, "bad unit", http.StatusBadRequest)
@@ -57,9 +69,21 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]float64{"price": pricing.CalcPrice(unit, qty)})
 	})
 
-	http.HandleFunc("GET /stock/{name}", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]int{"count": st.Count(r.PathValue("name"))})
+	mux.HandleFunc("GET /stock/{name}", func(w http.ResponseWriter, r *http.Request) {
+		name := r.PathValue("name")
+		stockMu.Lock()
+		count := st.Count(name)
+		stockMu.Unlock()
+		json.NewEncoder(w).Encode(map[string]int{"count": count})
 	})
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	mux.HandleFunc("GET /stock-total", func(w http.ResponseWriter, r *http.Request) {
+		stockMu.Lock()
+		total := st.Total()
+		stockMu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]int{"total": total})
+	})
+
+	return mux
 }
