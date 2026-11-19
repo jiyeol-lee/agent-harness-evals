@@ -4,6 +4,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -54,7 +55,7 @@ func main() {
 			http.Error(w, "bad qty", http.StatusBadRequest)
 			return
 		}
-		json.NewEncoder(w).Encode(map[string]float64{"price": pricing.CalcPrice(unit, qty)})
+		json.NewEncoder(w).Encode(map[string]float64{"price": quotePrice(unit, qty)})
 	})
 
 	http.HandleFunc("GET /stock/{name}", func(w http.ResponseWriter, r *http.Request) {
@@ -62,4 +63,13 @@ func main() {
 	})
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func quotePrice(unit float64, qty int) float64 {
+	price := pricing.Quote([]pricing.Line{{UnitPrice: unit, Qty: qty}}, 0)
+	// Summation in Quote loses the sign of a zero product.
+	if price == 0 && math.Signbit(unit) != (qty < 0) {
+		price = math.Copysign(0, -1)
+	}
+	return price
 }
