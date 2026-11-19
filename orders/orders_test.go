@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"example.com/shop/events"
-	"example.com/shop/pricing"
 	"example.com/shop/stock"
 )
 
@@ -25,6 +24,36 @@ func TestOrderTotal(t *testing.T) {
 	}
 }
 
+func TestOrderTotalInItemOrder(t *testing.T) {
+	items := []Item{
+		{Name: "a", UnitPrice: 0.1, Qty: 1},
+		{Name: "b", UnitPrice: 0.2, Qty: 1},
+		{Name: "c", UnitPrice: 0.3, Qty: 1},
+	}
+	st := stock.NewStock()
+	for _, item := range items {
+		st.Add(item.Name, item.Qty)
+	}
+	svc := New(st, &events.Bus{})
+	const want = 0.6000000000000001
+
+	quoted, err := svc.Quote(items)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if quoted != want {
+		t.Fatalf("quoted total = %v, want %v", quoted, want)
+	}
+
+	placed, err := svc.Place("o1", items)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if placed != want {
+		t.Fatalf("placed total = %v, want %v", placed, want)
+	}
+}
+
 func TestPlaceReservesStock(t *testing.T) {
 	st := stock.NewStock()
 	st.Add("apple", 10)
@@ -34,7 +63,7 @@ func TestPlaceReservesStock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := pricing.CalcPrice(2.5, 2); got != want {
+	if want := 5.0; got != want {
 		t.Fatalf("total = %v, want %v", got, want)
 	}
 	if left := st.Count("apple"); left != 8 {
