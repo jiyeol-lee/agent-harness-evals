@@ -61,5 +61,10 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]int{"count": st.Count(r.PathValue("name"))})
 	})
 
+	http.HandleFunc("GET /stock-total", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]int{"total": st.Total()})
+	})
+
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
