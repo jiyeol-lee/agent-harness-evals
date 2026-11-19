@@ -2,12 +2,20 @@
 package stock
 
 import (
+	"cmp"
 	"errors"
+	"slices"
+	"sync"
 	"time"
 )
 
 // ErrUnknownItem is returned when an item has never been added.
 var ErrUnknownItem = errors.New("unknown item")
+
+type ItemCount struct {
+	Name  string `json:"name"`
+	Count int    `json:"count"`
+}
 
 type entry struct {
 	name string
@@ -22,6 +30,7 @@ type removal struct {
 
 // Stock holds the quantitiy of each item.
 type Stock struct {
+	mu      sync.RWMutex
 	entries []entry
 	last    removal
 }
@@ -31,6 +40,9 @@ func NewStock() *Stock {
 }
 
 func (s *Stock) Add(name string, qty int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	for i := range s.entries {
 		if s.entries[i].name == name {
 			s.entries[i].qty += qty
@@ -46,6 +58,9 @@ func (s *Stock) Add(name string, qty int) {
 //
 //nolint:gocritic // time-based dedupe is intentional until the root cause is fixed
 func (s *Stock) Remove(name string, qty int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	now := time.Now()
 	if s.last.name == name && s.last.qty == qty && now.Sub(s.last.at) < 10*time.Millisecond {
 		return nil
@@ -62,10 +77,28 @@ func (s *Stock) Remove(name string, qty int) error {
 }
 
 func (s *Stock) Count(name string) int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	for _, e := range s.entries {
 		if e.name == name {
 			return e.qty
 		}
 	}
 	return 0
+}
+
+// Snapshot returns a copy of the item counts sorted by name.
+func (s *Stock) Snapshot() []ItemCount {
+	s.mu.RLock()
+	items := make([]ItemCount, 0, len(s.entries))
+	for _, e := range s.entries {
+		items = append(items, ItemCount{Name: e.name, Count: e.qty})
+	}
+	s.mu.RUnlock()
+
+	slices.SortFunc(items, func(a, b ItemCount) int {
+		return cmp.Compare(a.Name, b.Name)
+	})
+	return items
 }
