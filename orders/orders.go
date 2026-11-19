@@ -30,49 +30,46 @@ func New(s *stock.Stock, b *events.Bus) *Service {
 
 // Quote returns the total price of items without reserving stock.
 func (o *Service) Quote(items []Item) (float64, error) {
-	if len(items) == 0 {
-		return 0, errors.New("order has no items")
+	lines, err := validatedLines(items)
+	if err != nil {
+		return 0, err
 	}
-	for _, it := range items {
-		if it.Qty <= 0 {
-			return 0, fmt.Errorf("item %s: quantity must be positive", it.Name)
-		}
-		if it.UnitPrice < 0 {
-			return 0, fmt.Errorf("item %s: price must not be negative", it.Name)
-		}
-	}
-
-	var total float64
-	for _, it := range items {
-		total += pricing.CalcPrice(it.UnitPrice, it.Qty)
-	}
-	return total, nil
+	return pricing.Quote(lines, 0), nil
 }
 
 // Place reserves stock for items, publishes OrderPlaced, and returns the total.
 func (o *Service) Place(id string, items []Item) (float64, error) {
-	if len(items) == 0 {
-		return 0, errors.New("order has no items")
-	}
-	for _, it := range items {
-		if it.Qty <= 0 {
-			return 0, fmt.Errorf("item %s: quantity must be positive", it.Name)
-		}
-		if it.UnitPrice < 0 {
-			return 0, fmt.Errorf("item %s: price must not be negative", it.Name)
-		}
+	lines, err := validatedLines(items)
+	if err != nil {
+		return 0, err
 	}
 
-	var total float64
 	reserved := map[string]int{}
 	for _, it := range items {
 		if err := o.stock.Remove(it.Name, it.Qty); err != nil {
 			return 0, fmt.Errorf("reserve %s: %w", it.Name, err)
 		}
 		reserved[it.Name] += it.Qty
-		total += pricing.CalcPrice(it.UnitPrice, it.Qty)
 	}
 
+	total := pricing.Quote(lines, 0)
 	o.bus.Publish(events.OrderPlaced{OrderID: id, Items: reserved})
 	return total, nil
+}
+
+func validatedLines(items []Item) ([]pricing.Line, error) {
+	if len(items) == 0 {
+		return nil, errors.New("order has no items")
+	}
+	lines := make([]pricing.Line, len(items))
+	for i, it := range items {
+		if it.Qty <= 0 {
+			return nil, fmt.Errorf("item %s: quantity must be positive", it.Name)
+		}
+		if it.UnitPrice < 0 {
+			return nil, fmt.Errorf("item %s: price must not be negative", it.Name)
+		}
+		lines[i] = pricing.Line{UnitPrice: it.UnitPrice, Qty: it.Qty}
+	}
+	return lines, nil
 }
