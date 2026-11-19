@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"sync"
 	"testing"
 
 	"example.com/shop/stock"
@@ -56,4 +57,28 @@ func TestListStock(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestListStockDuringRemoval(t *testing.T) {
+	st := stock.NewStock()
+	st.Add("apple", 200)
+	h := listStock(st)
+
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		for qty := 1; qty <= 200; qty++ {
+			if err := st.Remove("apple", qty); err != nil {
+				t.Error(err)
+				return
+			}
+		}
+	})
+	for range 200 {
+		res := httptest.NewRecorder()
+		h.ServeHTTP(res, httptest.NewRequest(http.MethodGet, "/stock", nil))
+		if res.Code != http.StatusOK {
+			t.Errorf("status = %d, want %d", res.Code, http.StatusOK)
+		}
+	}
+	wg.Wait()
 }
