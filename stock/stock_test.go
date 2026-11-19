@@ -1,6 +1,9 @@
 package stock
 
-import "testing"
+import (
+	"sync"
+	"testing"
+)
 
 func TestAddAndCount(t *testing.T) {
 	s := NewStock()
@@ -54,4 +57,31 @@ func TestTotalAfterUpdates(t *testing.T) {
 	if got := s.Total(); got != 7 {
 		t.Fatalf("Total() after Remove = %d, want 7", got)
 	}
+}
+
+func TestRaceTotalVsMutation(t *testing.T) {
+	checkConcurrentStockRead(func(s *Stock) { s.Total() })
+}
+
+func TestRaceCountVsMutation(t *testing.T) {
+	checkConcurrentStockRead(func(s *Stock) { s.Count("apple") })
+}
+
+func checkConcurrentStockRead(read func(*Stock)) {
+	s := NewStock()
+	s.Add("apple", 100)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for range 1000 {
+			s.Add("apple", 1)
+			_ = s.Remove("apple", 1)
+		}
+	}()
+	for range 1000 {
+		read(s)
+	}
+	wg.Wait()
 }

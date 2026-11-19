@@ -3,6 +3,7 @@ package stock
 
 import (
 	"errors"
+	"sync"
 	"time"
 )
 
@@ -20,8 +21,9 @@ type removal struct {
 	at   time.Time
 }
 
-// Stock holds the quantitiy of each item.
+// Stock holds the quantity of each item. It must not be copied after first use.
 type Stock struct {
+	mu      sync.RWMutex
 	entries []entry
 	last    removal
 }
@@ -31,6 +33,9 @@ func NewStock() *Stock {
 }
 
 func (s *Stock) Add(name string, qty int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	for i := range s.entries {
 		if s.entries[i].name == name {
 			s.entries[i].qty += qty
@@ -46,6 +51,9 @@ func (s *Stock) Add(name string, qty int) {
 //
 //nolint:gocritic // time-based dedupe is intentional until the root cause is fixed
 func (s *Stock) Remove(name string, qty int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	now := time.Now()
 	if s.last.name == name && s.last.qty == qty && now.Sub(s.last.at) < 10*time.Millisecond {
 		return nil
@@ -62,6 +70,9 @@ func (s *Stock) Remove(name string, qty int) error {
 }
 
 func (s *Stock) Count(name string) int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	for _, e := range s.entries {
 		if e.name == name {
 			return e.qty
@@ -71,6 +82,9 @@ func (s *Stock) Count(name string) int {
 }
 
 func (s *Stock) Total() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	total := 0
 	for _, e := range s.entries {
 		total += e.qty
