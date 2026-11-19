@@ -26,7 +26,12 @@ func main() {
 	})
 	svc := orders.New(st, bus)
 
-	http.HandleFunc("POST /orders", func(w http.ResponseWriter, r *http.Request) {
+	log.Fatal(http.ListenAndServe(":8080", newMux(st, svc)))
+}
+
+func newMux(st *stock.Stock, svc *orders.Service) *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /orders", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			ID    string        `json:"id"`
 			Items []orders.Item `json:"items"`
@@ -43,7 +48,7 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]float64{"total": total})
 	})
 
-	http.HandleFunc("GET /price", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /price", func(w http.ResponseWriter, r *http.Request) {
 		unit, err := strconv.ParseFloat(r.URL.Query().Get("unit"), 64)
 		if err != nil {
 			http.Error(w, "bad unit", http.StatusBadRequest)
@@ -57,9 +62,14 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]float64{"price": pricing.CalcPrice(unit, qty)})
 	})
 
-	http.HandleFunc("GET /stock/{name}", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /stock", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(st.Snapshot())
+	})
+
+	mux.HandleFunc("GET /stock/{name}", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]int{"count": st.Count(r.PathValue("name"))})
 	})
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	return mux
 }
