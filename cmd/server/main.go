@@ -66,12 +66,7 @@ func newMux(st *stock.Stock, svc *orders.Service) *http.ServeMux {
 		json.NewEncoder(w).Encode(map[string]int{"count": st.Count(r.PathValue("name"))})
 	})
 
-	mux.HandleFunc("/stock-total", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			w.Header().Set("Allow", http.MethodGet)
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
+	mux.HandleFunc("GET /stock-total", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]int{"total": st.Total()})
 	})

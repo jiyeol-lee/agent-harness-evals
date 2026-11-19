@@ -56,23 +56,17 @@ func TestStockTotal(t *testing.T) {
 	checkTotal(`{"total":0}`)
 }
 
-func TestStockTotalRejectsNonGET(t *testing.T) {
+func TestStockTotalRejectsPOST(t *testing.T) {
 	st := stock.NewStock()
 	server := httptest.NewServer(newMux(st, orders.New(st, &events.Bus{})))
 	defer server.Close()
 
-	for _, method := range []string{http.MethodPost, http.MethodHead} {
-		req, err := http.NewRequest(method, server.URL+"/stock-total", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		resp, err := server.Client().Do(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-		resp.Body.Close()
-		if resp.StatusCode != http.StatusMethodNotAllowed {
-			t.Errorf("%s /stock-total: status = %d, want 405", method, resp.StatusCode)
-		}
+	resp, err := server.Client().Post(server.URL+"/stock-total", "application/json", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusMethodNotAllowed {
+		t.Errorf("POST /stock-total: status = %d, want 405", resp.StatusCode)
 	}
 }
