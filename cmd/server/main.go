@@ -60,6 +60,7 @@ func main() {
 	http.HandleFunc("GET /stock/{name}", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]int{"count": st.Count(r.PathValue("name"))})
 	})
+	registerStockTotal(http.DefaultServeMux, st)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
