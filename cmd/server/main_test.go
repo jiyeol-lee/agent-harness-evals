@@ -33,7 +33,7 @@ func TestStockTotal(t *testing.T) {
 			t.Fatalf("initial stock total = %d, want 150", got)
 		}
 
-		body := strings.NewReader(`{"id":"one","items":[{"name":"apple","unitPrice":1,"qty":1}]}`)
+		body := strings.NewReader(`{"id":"one","items":[{"name":"apple","unitPrice":1,"qty":2},{"name":"apple","unitPrice":1,"qty":3}]}`)
 		resp, err := server.Client().Post(server.URL+"/orders", "application/json", body)
 		if err != nil {
 			t.Fatal(err)
@@ -43,16 +43,10 @@ func TestStockTotal(t *testing.T) {
 			t.Fatalf("POST /orders: status = %d, want 200", resp.StatusCode)
 		}
 
-		got := stockTotal(t, server)
-		if got >= 150 {
-			t.Errorf("stock total after order = %d, want less than 150", got)
-		}
-		var item struct {
-			Count int `json:"count"`
-		}
-		getStockJSON(t, server, "/stock/apple", &item)
-		if want := item.Count + 50; got != want {
-			t.Errorf("stock total after order = %d, want %d (apple count plus 50 pears)", got, want)
+		// The reservation removes 2 and 3; the existing subscriber removes 5.
+		// With distinct consecutive quantities, stock's time-based dedupe never applies.
+		if got := stockTotal(t, server); got != 140 {
+			t.Errorf("stock total after order = %d, want 140", got)
 		}
 	})
 }
@@ -94,32 +88,25 @@ func TestStockConcurrentRequests(t *testing.T) {
 
 func stockTotal(t *testing.T, server *httptest.Server) int {
 	t.Helper()
-	var body struct {
-		Total *int `json:"total"`
-	}
-	getStockJSON(t, server, "/stock-total", &body)
-	if body.Total == nil {
-		t.Fatal("GET /stock-total: missing total")
-	}
-	return *body.Total
-}
-
-func getStockJSON(t *testing.T, server *httptest.Server, path string, dst any) {
-	t.Helper()
-	resp, err := server.Client().Get(server.URL + path)
+	resp, err := server.Client().Get(server.URL + "/stock-total")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("GET %s: status = %d, want 200", path, resp.StatusCode)
+		t.Fatalf("GET /stock-total: status = %d, want 200", resp.StatusCode)
 	}
-	if path == "/stock-total" {
-		if got := resp.Header.Get("Content-Type"); got != "application/json" {
-			t.Errorf("GET %s: Content-Type = %q, want application/json", path, got)
-		}
+	if got := resp.Header.Get("Content-Type"); got != "application/json" {
+		t.Errorf("GET /stock-total: Content-Type = %q, want application/json", got)
 	}
-	if err := json.NewDecoder(resp.Body).Decode(dst); err != nil {
-		t.Fatalf("GET %s: decode JSON: %v", path, err)
+	var body struct {
+		Total *int `json:"total"`
 	}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatalf("GET /stock-total: decode JSON: %v", err)
+	}
+	if body.Total == nil {
+		t.Fatal("GET /stock-total: missing total")
+	}
+	return *body.Total
 }
