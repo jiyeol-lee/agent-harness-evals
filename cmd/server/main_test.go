@@ -1,0 +1,51 @@
+package main
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"example.com/shop/stock"
+)
+
+func TestStockTotal(t *testing.T) {
+	st := stock.NewStock()
+	mux := http.NewServeMux()
+	registerStockTotal(mux, st)
+
+	checkTotal := func(t *testing.T, want int) {
+		t.Helper()
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/stock-total", nil))
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
+		}
+		if got := w.Header().Get("Content-Type"); got != "application/json" {
+			t.Errorf("Content-Type = %q, want application/json", got)
+		}
+		var body map[string]*int
+		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+			t.Fatalf("decode response: %v", err)
+		}
+		if total := body["total"]; len(body) != 1 || total == nil || *total != want {
+			t.Errorf("body = %s, want {\"total\": %d}", w.Body.Bytes(), want)
+		}
+	}
+
+	t.Run("empty", func(t *testing.T) {
+		checkTotal(t, 0)
+	})
+
+	t.Run("in use", func(t *testing.T) {
+		st.Add("apple", 10)
+		st.Add("pear", 5)
+		checkTotal(t, 15)
+
+		if err := st.Remove("apple", 4); err != nil {
+			t.Fatal(err)
+		}
+		checkTotal(t, 11)
+	})
+}
