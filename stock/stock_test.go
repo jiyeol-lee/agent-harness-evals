@@ -39,3 +39,30 @@ func TestTotal(t *testing.T) {
 		t.Fatalf("Total() after removal = %d, want 6", got)
 	}
 }
+
+func TestConcurrentStockReads(t *testing.T) {
+	s := NewStock()
+	s.Add("apple", 3)
+
+	start := make(chan struct{})
+	removed := make(chan error)
+	go func() {
+		<-start
+		removed <- s.Remove("apple", 2)
+	}()
+
+	close(start)
+	count, total := s.Count("apple"), s.Total()
+	if err := <-removed; err != nil {
+		t.Fatalf("Remove(apple, 2) = %v, want nil", err)
+	}
+	if count != 3 && count != 1 {
+		t.Errorf("Count(apple) during removal = %d, want 3 or 1", count)
+	}
+	if total != 3 && total != 1 {
+		t.Errorf("Total() during removal = %d, want 3 or 1", total)
+	}
+	if got := s.Total(); got != 1 {
+		t.Errorf("Total() after removal = %d, want 1", got)
+	}
+}
