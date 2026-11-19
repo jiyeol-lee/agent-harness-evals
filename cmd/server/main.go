@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 
 	"example.com/shop/events"
@@ -57,9 +58,30 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]float64{"price": pricing.CalcPrice(unit, qty)})
 	})
 
-	http.HandleFunc("GET /stock/{name}", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]int{"count": st.Count(r.PathValue("name"))})
-	})
+	registerStockRoutes(http.DefaultServeMux, st)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func registerStockRoutes(mux *http.ServeMux, st *stock.Stock) {
+	mux.HandleFunc("GET /stock", func(w http.ResponseWriter, r *http.Request) {
+		type stockRow struct {
+			Name  string `json:"name"`
+			Count int    `json:"count"`
+		}
+		counts := st.Counts()
+		rows := make([]stockRow, 0, len(counts))
+		for name, count := range counts {
+			rows = append(rows, stockRow{Name: name, Count: count})
+		}
+		sort.Slice(rows, func(i, j int) bool {
+			return rows[i].Name < rows[j].Name
+		})
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(rows)
+	})
+
+	mux.HandleFunc("GET /stock/{name}", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]int{"count": st.Count(r.PathValue("name"))})
+	})
 }

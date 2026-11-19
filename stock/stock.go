@@ -69,3 +69,12 @@ func (s *Stock) Count(name string) int {
 	}
 	return 0
 }
+
+// Counts returns an independent map of quantities for all added items, including zero counts.
+func (s *Stock) Counts() map[string]int {
+	counts := make(map[string]int, len(s.entries))
+	for _, e := range s.entries {
+		counts[e.name] = e.qty
+	}
+	return counts
+}
